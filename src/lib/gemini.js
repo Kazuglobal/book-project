@@ -6,19 +6,27 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
 
 // APIキーが設定されているか確認
-const isValidApiKey = API_KEY && API_KEY !== 'your_gemini_api_key_here';
+const isValidApiKey = Boolean(API_KEY && API_KEY !== 'YOUR_API_KEY_HERE');
 
 // Gemini APIクライアントの初期化
-const genAI = isValidApiKey ? new GoogleGenerativeAI(API_KEY) : null;
+let genAI = null;
+try {
+  if (isValidApiKey) {
+    genAI = new GoogleGenerativeAI(API_KEY);
+    console.log('Gemini API client initialized successfully');
+  }
+} catch (error) {
+  console.error('Failed to initialize Gemini API client:', error);
+}
 
 export { genAI, isValidApiKey };
 
 // APIキーが設定されていない場合のエラーメッセージを返す関数
 export function getApiKeyErrorMessage() {
   if (!API_KEY) {
-    return 'Gemini APIキーが設定されていません。.env.localファイルにGEMINI_API_KEYを設定してください。';
+    return 'Gemini APIキーが設定されていません。.env.localファイルにNEXT_PUBLIC_GEMINI_API_KEYを設定してください。';
   }
-  if (API_KEY === 'your_gemini_api_key_here') {
+  if (API_KEY === 'YOUR_API_KEY_HERE') {
     return 'Gemini APIキーがプレースホルダーのままです。有効なAPIキーを.env.localファイルに設定してください。';
   }
   return null;

@@ -7,8 +7,12 @@ const API_KEY = process.env.GEMINI_API_KEY;
 console.log('Using API key from environment variable');
 
 // APIキーが設定されているか確認
-if (!API_KEY || API_KEY === 'your_gemini_api_key_here') {
-  console.error('GEMINI_API_KEY is not set or is using the placeholder value');
+if (!API_KEY) {
+  console.error('GEMINI_API_KEY is not set');
+} else if (API_KEY === 'YOUR_API_KEY_HERE') {
+  console.error('GEMINI_API_KEY is using the placeholder value');
+} else {
+  console.log('GEMINI_API_KEY is set correctly');
 }
 
 // Gemini APIクライアントの初期化
@@ -17,7 +21,7 @@ const genAI = API_KEY ? new GoogleGenerativeAI(API_KEY) : null;
 export async function POST(request) {
   try {
     // APIキーが設定されていない場合はエラーを返す
-    if (!API_KEY || !genAI || API_KEY === 'your_gemini_api_key_here') {
+    if (!API_KEY || !genAI) {
       return NextResponse.json(
         { error: 'API key is not configured. Please set the GEMINI_API_KEY environment variable with a valid key.' },
         { status: 500 }
