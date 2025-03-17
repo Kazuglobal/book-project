@@ -809,9 +809,19 @@ function GlobalbunnyStoryGalleryContent() {
       window.removeEventListener('resize', handleResize)
       window.removeEventListener('mousemove', onMouseMove)
       window.removeEventListener('click', onMouseClick)
-      document.body.removeChild(labelRenderer.domElement)
-      renderer.dispose()
-      labelRenderer.dispose()
+      
+      // DOMから要素を削除
+      if (labelRenderer && labelRenderer.domElement && document.body.contains(labelRenderer.domElement)) {
+        document.body.removeChild(labelRenderer.domElement)
+      }
+      
+      // レンダラーのリソースを解放
+      if (renderer && typeof renderer.dispose === 'function') {
+        renderer.dispose()
+      }
+      
+      // CSS2DRendererのdisposeメソッドは呼び出さない
+      // 代わりにDOMから要素を削除するだけ（上で実行済み）
     }
   }, [])
 

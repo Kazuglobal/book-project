@@ -1,13 +1,28 @@
-import { genai } from '@google/generative-ai';
+'use client';
 
-// APIキーを環境変数から取得するか、直接設定します
-// 注意: 実際のプロダクションでは環境変数を使用することを強く推奨します
-const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || 'AIzaSyBkcTpM5FKvx_WrFIo4g6O9fHS-G6rjjnA';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+// 環境変数からAPIキーを取得
+const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
+
+// APIキーが設定されているか確認
+const isValidApiKey = API_KEY && API_KEY !== 'your_gemini_api_key_here';
 
 // Gemini APIクライアントの初期化
-const genaiClient = genai.configure({
-  apiKey: API_KEY,
-});
+const genAI = isValidApiKey ? new GoogleGenerativeAI(API_KEY) : null;
+
+export { genAI, isValidApiKey };
+
+// APIキーが設定されていない場合のエラーメッセージを返す関数
+export function getApiKeyErrorMessage() {
+  if (!API_KEY) {
+    return 'Gemini APIキーが設定されていません。.env.localファイルにGEMINI_API_KEYを設定してください。';
+  }
+  if (API_KEY === 'your_gemini_api_key_here') {
+    return 'Gemini APIキーがプレースホルダーのままです。有効なAPIキーを.env.localファイルに設定してください。';
+  }
+  return null;
+}
 
 /**
  * Gemini APIを使用して本の表紙画像を生成する関数
@@ -17,50 +32,35 @@ const genaiClient = genai.configure({
  * @returns {Promise<string>} - 生成された画像のBase64エンコードされたデータURL
  */
 export async function generateBookCover(prompt, bookTitle, author) {
+  if (!isValidApiKey || !genAI) {
+    throw new Error('有効なGemini APIキーが設定されていません');
+  }
+
   try {
-    // モデルの選択
-    const model = genaiClient.getGenerativeModel({ 
-      model: "gemini-2.0-flash-exp-image-generation" 
+    // 最新の画像生成モデルを選択
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.0-flash-exp-image-generation",
+      generationConfig: {
+        responseModalities: ['Text', 'Image']
+      }
     });
 
     // プロンプトの作成
-    const fullPrompt = `Create a book cover image for a book titled "${bookTitle}" by ${author}. ${prompt}`;
+    const fullPrompt = `Create a book cover image for a book titled "${bookTitle}" by ${author}. ${prompt}. Please generate an image.`;
 
     // 画像生成リクエストの設定
-    const result = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
-      generationConfig: {
-        temperature: 0.9,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 8192,
-      },
-      safetySettings: [
-        {
-          category: "HARM_CATEGORY_HARASSMENT",
-          threshold: "BLOCK_NONE",
-        },
-        {
-          category: "HARM_CATEGORY_HATE_SPEECH",
-          threshold: "BLOCK_NONE",
-        },
-        {
-          category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-          threshold: "BLOCK_NONE",
-        },
-        {
-          category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-          threshold: "BLOCK_NONE",
-        },
-      ],
-    });
-
-    // 生成された画像を取得
-    const response = result.response;
-    const imageData = response.candidates[0].content.parts[0].inlineData.data;
+    const response = await model.generateContent(fullPrompt);
     
-    // Base64エンコードされた画像データを返す
-    return `data:image/jpeg;base64,${imageData}`;
+    // レスポンスから画像データを抽出
+    for (const part of response.response.candidates[0].content.parts) {
+      if (part.inlineData) {
+        const imageData = part.inlineData.data;
+        return `data:image/jpeg;base64,${imageData}`;
+      }
+    }
+    
+    // 画像が生成されなかった場合はエラーをスロー
+    throw new Error('画像の生成に失敗しました。別のプロンプトを試してください。');
   } catch (error) {
     console.error('Error generating book cover:', error);
     throw error;
@@ -74,9 +74,13 @@ export async function generateBookCover(prompt, bookTitle, author) {
  * @returns {Promise<string>} - 生成された本の要約
  */
 export async function generateBookSummary(bookTitle, genre) {
+  if (!isValidApiKey || !genAI) {
+    throw new Error('有効なGemini APIキーが設定されていません');
+  }
+
   try {
     // モデルの選択
-    const model = genaiClient.getGenerativeModel({ 
+    const model = genAI.getGenerativeModel({ 
       model: "gemini-2.0-flash" 
     });
 

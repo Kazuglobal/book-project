@@ -1,16 +1,29 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// 直接APIキーを設定（テスト用、本番環境では環境変数を使用すること）
-const API_KEY = 'AIzaSyDdu48Ghg7QZA0oEw9njzAHQ2MzGGPAp_k';
+// 環境変数からAPIキーを取得
+const API_KEY = process.env.GEMINI_API_KEY;
 
-console.log('API_KEY directly set in route.js');
+console.log('Using API key from environment variable');
+
+// APIキーが設定されているか確認
+if (!API_KEY || API_KEY === 'your_gemini_api_key_here') {
+  console.error('GEMINI_API_KEY is not set or is using the placeholder value');
+}
 
 // Gemini APIクライアントの初期化
-const genaiClient = new GoogleGenerativeAI(API_KEY);
+const genAI = API_KEY ? new GoogleGenerativeAI(API_KEY) : null;
 
 export async function POST(request) {
   try {
+    // APIキーが設定されていない場合はエラーを返す
+    if (!API_KEY || !genAI || API_KEY === 'your_gemini_api_key_here') {
+      return NextResponse.json(
+        { error: 'API key is not configured. Please set the GEMINI_API_KEY environment variable with a valid key.' },
+        { status: 500 }
+      );
+    }
+
     const { action, prompt, bookTitle, author, genre, pageStyle, pageContent } = await request.json();
 
     if (action === 'generateCover') {
@@ -42,30 +55,45 @@ export async function POST(request) {
  */
 async function generateBookCover(prompt, bookTitle, author) {
   try {
-    // モデルの選択
-    const model = genaiClient.getGenerativeModel({ 
-      model: "gemini-1.5-flash" 
+    // 最新の画像生成モデルを選択
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.0-flash-exp-image-generation",
+      generationConfig: {
+        responseModalities: ['Text', 'Image']
+      }
     });
 
     // プロンプトの作成
-    const fullPrompt = `Create a book cover image for a book titled "${bookTitle}" by ${author}. ${prompt}`;
+    const fullPrompt = `Create a book cover image for a book titled "${bookTitle}" by ${author}. ${prompt}. Please generate an image.`;
 
-    // テキスト生成リクエストの設定
-    const result = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
-      generationConfig: {
-        temperature: 0.9,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 8192,
-      },
-    });
-
-    // 生成されたテキストを返す
-    return NextResponse.json({ 
-      summary: result.response.text(),
-      message: "画像生成はサポートされていません。代わりに説明テキストを生成しました。"
-    });
+    // 画像生成リクエストの設定
+    const response = await model.generateContent(fullPrompt);
+    
+    // レスポンスから画像データを抽出
+    let imageUrl = null;
+    let description = null;
+    
+    for (const part of response.response.candidates[0].content.parts) {
+      if (part.inlineData) {
+        const imageData = part.inlineData.data;
+        imageUrl = `data:image/jpeg;base64,${imageData}`;
+      } else if (part.text) {
+        description = part.text;
+      }
+    }
+    
+    if (imageUrl) {
+      return NextResponse.json({ 
+        imageUrl,
+        description: description || "Generated image"
+      });
+    } else {
+      // 画像が生成されなかった場合はテキスト説明のみを返す
+      return NextResponse.json({ 
+        message: "画像生成はサポートされていません。代わりに説明テキストを生成しました。",
+        summary: description || "画像の説明を生成できませんでした。"
+      });
+    }
   } catch (error) {
     console.error('Error generating book cover:', error);
     return NextResponse.json(
@@ -81,8 +109,8 @@ async function generateBookCover(prompt, bookTitle, author) {
 async function generateBookSummary(bookTitle, genre) {
   try {
     // モデルの選択
-    const model = genaiClient.getGenerativeModel({ 
-      model: "gemini-1.5-flash" 
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.0-flash" 
     });
 
     // プロンプトの作成
@@ -115,9 +143,12 @@ async function generateBookSummary(bookTitle, genre) {
  */
 async function generatePageImage(prompt, pageStyle, pageContent) {
   try {
-    // モデルの選択
-    const model = genaiClient.getGenerativeModel({ 
-      model: "gemini-1.5-flash" 
+    // 最新の画像生成モデルを選択
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.0-flash-exp-image-generation",
+      generationConfig: {
+        responseModalities: ['Text', 'Image']
+      }
     });
 
     // ページスタイルに基づいたプロンプトの調整
@@ -143,25 +174,37 @@ async function generatePageImage(prompt, pageStyle, pageContent) {
     const contentContext = pageContent ? `The illustration should relate to this content: "${pageContent}"` : '';
 
     // プロンプトの作成
-    const fullPrompt = `${stylePrompt} ${prompt} ${contentContext}`;
+    const fullPrompt = `${stylePrompt} ${prompt} ${contentContext}. Please generate an image.`;
 
-    // テキスト生成リクエストの設定
-    const result = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
-      generationConfig: {
-        temperature: 0.9,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 2048,
-      },
-    });
-
-    // ダミー画像URLを返す（テスト用）
-    return NextResponse.json({ 
-      imageUrl: "https://placehold.co/600x400/orange/white?text=Generated+Image+Placeholder",
-      description: result.response.text(),
-      message: "画像生成はサポートされていません。代わりにプレースホルダー画像と説明テキストを生成しました。"
-    });
+    // 画像生成リクエストの設定
+    const response = await model.generateContent(fullPrompt);
+    
+    // レスポンスから画像データを抽出
+    let imageUrl = null;
+    let description = null;
+    
+    for (const part of response.response.candidates[0].content.parts) {
+      if (part.inlineData) {
+        const imageData = part.inlineData.data;
+        imageUrl = `data:image/jpeg;base64,${imageData}`;
+      } else if (part.text) {
+        description = part.text;
+      }
+    }
+    
+    if (imageUrl) {
+      return NextResponse.json({ 
+        imageUrl,
+        description: description || "Generated image"
+      });
+    } else {
+      // 画像が生成されなかった場合はダミー画像とテキスト説明を返す
+      return NextResponse.json({ 
+        imageUrl: "https://placehold.co/600x400/orange/white?text=Generated+Image+Placeholder",
+        description: description || "画像の説明を生成できませんでした。",
+        message: "画像生成はサポートされていません。代わりにプレースホルダー画像と説明テキストを生成しました。"
+      });
+    }
   } catch (error) {
     console.error('Error generating page image:', error);
     return NextResponse.json(
