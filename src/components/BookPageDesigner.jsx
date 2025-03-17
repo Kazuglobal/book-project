@@ -85,9 +85,11 @@ export default function BookPageDesigner() {
     }
     
     setIsLoading(true);
-    setError('');
+    setError(null);
     
     try {
+      console.log('Generating image with prompt:', imagePrompt);
+      
       const response = await fetch('/api/gemini', {
         method: 'POST',
         headers: {
@@ -103,17 +105,31 @@ export default function BookPageDesigner() {
       
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('API response error:', errorData);
         throw new Error(errorData.error || '画像生成中にエラーが発生しました');
       }
       
       const data = await response.json();
+      
+      // 画像URLを設定
       setGeneratedImage(data.imageUrl);
+      
+      // メッセージがある場合は表示
+      if (data.message) {
+        console.log('API message:', data.message);
+      }
       
       // 生成された画像を現在のページに保存
       savePage();
     } catch (err) {
       console.error('Error generating image:', err);
-      setError(err.message || '画像生成中にエラーが発生しました');
+      
+      // APIキーエラーの特別なハンドリング
+      if (err.message && err.message.includes('API key is not configured')) {
+        setError('Gemini APIキーが設定されていません。管理者に連絡してください。');
+      } else {
+        setError(err.message || '画像生成中にエラーが発生しました');
+      }
     } finally {
       setIsLoading(false);
     }

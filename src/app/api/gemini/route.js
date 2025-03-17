@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
-import { genai } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// APIキーを環境変数から取得するか、直接設定します
-const API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyBkcTpM5FKvx_WrFIo4g6O9fHS-G6rjjnA';
+// 直接APIキーを設定（テスト用、本番環境では環境変数を使用すること）
+const API_KEY = 'AIzaSyDdu48Ghg7QZA0oEw9njzAHQ2MzGGPAp_k';
+
+console.log('API_KEY directly set in route.js');
 
 // Gemini APIクライアントの初期化
-const genaiClient = genai.configure({
-  apiKey: API_KEY,
-});
+const genaiClient = new GoogleGenerativeAI(API_KEY);
 
 export async function POST(request) {
   try {
@@ -31,7 +31,7 @@ export async function POST(request) {
   } catch (error) {
     console.error('API error:', error);
     return NextResponse.json(
-      { error: 'リクエスト処理中にエラーが発生しました' },
+      { error: `リクエスト処理中にエラーが発生しました: ${error.message}` },
       { status: 500 }
     );
   }
@@ -44,13 +44,13 @@ async function generateBookCover(prompt, bookTitle, author) {
   try {
     // モデルの選択
     const model = genaiClient.getGenerativeModel({ 
-      model: "gemini-2.0-flash-exp-image-generation" 
+      model: "gemini-1.5-flash" 
     });
 
     // プロンプトの作成
     const fullPrompt = `Create a book cover image for a book titled "${bookTitle}" by ${author}. ${prompt}`;
 
-    // 画像生成リクエストの設定
+    // テキスト生成リクエストの設定
     const result = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
       generationConfig: {
@@ -59,36 +59,17 @@ async function generateBookCover(prompt, bookTitle, author) {
         topP: 0.95,
         maxOutputTokens: 8192,
       },
-      safetySettings: [
-        {
-          category: "HARM_CATEGORY_HARASSMENT",
-          threshold: "BLOCK_NONE",
-        },
-        {
-          category: "HARM_CATEGORY_HATE_SPEECH",
-          threshold: "BLOCK_NONE",
-        },
-        {
-          category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-          threshold: "BLOCK_NONE",
-        },
-        {
-          category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-          threshold: "BLOCK_NONE",
-        },
-      ],
     });
 
-    // 生成された画像を取得
-    const response = result.response;
-    const imageData = response.candidates[0].content.parts[0].inlineData.data;
-    
-    // Base64エンコードされた画像データを返す
-    return NextResponse.json({ imageUrl: `data:image/jpeg;base64,${imageData}` });
+    // 生成されたテキストを返す
+    return NextResponse.json({ 
+      summary: result.response.text(),
+      message: "画像生成はサポートされていません。代わりに説明テキストを生成しました。"
+    });
   } catch (error) {
     console.error('Error generating book cover:', error);
     return NextResponse.json(
-      { error: '画像生成中にエラーが発生しました' },
+      { error: '画像生成中にエラーが発生しました: ' + error.message },
       { status: 500 }
     );
   }
@@ -101,7 +82,7 @@ async function generateBookSummary(bookTitle, genre) {
   try {
     // モデルの選択
     const model = genaiClient.getGenerativeModel({ 
-      model: "gemini-2.0-flash" 
+      model: "gemini-1.5-flash" 
     });
 
     // プロンプトの作成
@@ -123,7 +104,7 @@ async function generateBookSummary(bookTitle, genre) {
   } catch (error) {
     console.error('Error generating book summary:', error);
     return NextResponse.json(
-      { error: '要約生成中にエラーが発生しました' },
+      { error: '要約生成中にエラーが発生しました: ' + error.message },
       { status: 500 }
     );
   }
@@ -136,7 +117,7 @@ async function generatePageImage(prompt, pageStyle, pageContent) {
   try {
     // モデルの選択
     const model = genaiClient.getGenerativeModel({ 
-      model: "gemini-2.0-flash-exp-image-generation" 
+      model: "gemini-1.5-flash" 
     });
 
     // ページスタイルに基づいたプロンプトの調整
@@ -164,46 +145,28 @@ async function generatePageImage(prompt, pageStyle, pageContent) {
     // プロンプトの作成
     const fullPrompt = `${stylePrompt} ${prompt} ${contentContext}`;
 
-    // 画像生成リクエストの設定
+    // テキスト生成リクエストの設定
     const result = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
       generationConfig: {
         temperature: 0.9,
         topK: 40,
         topP: 0.95,
-        maxOutputTokens: 8192,
+        maxOutputTokens: 2048,
       },
-      safetySettings: [
-        {
-          category: "HARM_CATEGORY_HARASSMENT",
-          threshold: "BLOCK_NONE",
-        },
-        {
-          category: "HARM_CATEGORY_HATE_SPEECH",
-          threshold: "BLOCK_NONE",
-        },
-        {
-          category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-          threshold: "BLOCK_NONE",
-        },
-        {
-          category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-          threshold: "BLOCK_NONE",
-        },
-      ],
     });
 
-    // 生成された画像を取得
-    const response = result.response;
-    const imageData = response.candidates[0].content.parts[0].inlineData.data;
-    
-    // Base64エンコードされた画像データを返す
-    return NextResponse.json({ imageUrl: `data:image/jpeg;base64,${imageData}` });
+    // ダミー画像URLを返す（テスト用）
+    return NextResponse.json({ 
+      imageUrl: "https://placehold.co/600x400/orange/white?text=Generated+Image+Placeholder",
+      description: result.response.text(),
+      message: "画像生成はサポートされていません。代わりにプレースホルダー画像と説明テキストを生成しました。"
+    });
   } catch (error) {
     console.error('Error generating page image:', error);
     return NextResponse.json(
-      { error: '画像生成中にエラーが発生しました' },
+      { error: '画像生成中にエラーが発生しました: ' + error.message },
       { status: 500 }
     );
   }
-} 
+}
