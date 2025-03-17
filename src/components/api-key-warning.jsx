@@ -1,18 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getApiKeyErrorMessage } from '@/lib/gemini';
 
 export default function ApiKeyWarning() {
   const [apiKeyError, setApiKeyError] = useState(null);
 
   useEffect(() => {
     // クライアントサイドでAPIキーをチェック
-    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-    
-    if (!apiKey) {
-      setApiKeyError('Gemini APIキーが設定されていません。');
-    } else if (apiKey === 'YOUR_API_KEY_HERE') {
-      setApiKeyError('デフォルトのAPIキーが使用されています。実際のAPIキーに置き換えてください。');
+    const errorMessage = getApiKeyErrorMessage();
+    if (errorMessage) {
+      setApiKeyError(errorMessage);
     }
   }, []);
 
