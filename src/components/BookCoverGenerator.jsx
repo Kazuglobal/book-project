@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import ApiKeyWarning from '@/components/api-key-warning';
+import ApiKeyWarning from './api-key-warning';
 
 export default function BookCoverGenerator() {
   const [bookTitle, setBookTitle] = useState('');
