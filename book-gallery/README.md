@@ -1,62 +1,13 @@
-<<<<<<< HEAD
-# Book Management Project
-
-This is a book management application that helps users organize and track their book collection.
-
-## Features
-
-- Book collection management
-- Book categorization
-- Reading progress tracking
-- Book reviews and ratings
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js (v18 or later)
-- npm or yarn
-- Git
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/Kazuglobal/book-project.git
-cd book-project
-```
-
-2. Install dependencies:
-```bash
-npm install
-# or
-yarn install
-```
-
-3. Start the development server:
-=======
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
 
 First, run the development server:
 
->>>>>>> 78200b8 (Initial commit)
 ```bash
 npm run dev
 # or
 yarn dev
-<<<<<<< HEAD
-```
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-=======
 # or
 pnpm dev
 # or
@@ -83,4 +34,3 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
->>>>>>> 78200b8 (Initial commit)
