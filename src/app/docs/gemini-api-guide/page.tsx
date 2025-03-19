@@ -1,38 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import MarkdownRenderer from '@/components/MarkdownRenderer';
 
 export default function GeminiApiGuidePage() {
-  const [content, setContent] = useState('');
-
-  useEffect(() => {
-    // マークダウンファイルを非同期で読み込む
-    fetch('/api/markdown?file=gemini-api-guide')
-      .then(response => response.json())
-      .then(data => {
-        setContent(data.content);
-      })
-      .catch(error => {
-        console.error('Error loading markdown:', error);
-      });
-  }, []);
-
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="mb-4">
-        <Link href="/book-generator" className="text-blue-600 hover:underline">
-          ← 本の表紙生成に戻る
+    <div className="max-w-6xl mx-auto p-6">
+      <div className="mb-6">
+        <Link href="/book-generator" className="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
+          </svg>
+          本の表紙生成に戻る
         </Link>
       </div>
       
-      <div className="prose prose-lg max-w-none">
-        {content ? (
-          <div dangerouslySetInnerHTML={{ __html: content }} />
-        ) : (
-          <p>Loading...</p>
-        )}
-      </div>
+      <MarkdownRenderer 
+        fileName="gemini-api-guide" 
+        title="Gemini API 開発ガイド"
+        subtitle="革新的な画像生成機能を実装するための総合ガイド"
+      />
     </div>
   );
 } 

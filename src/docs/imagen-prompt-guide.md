@@ -1,131 +1,117 @@
-# Imagen プロンプトガイド
+# 🎨 クリエイティブプロンプトガイド
 
-## プロンプト作成の基本
+## 🌟 魅力的な画像を生み出すために
 
-Gemini 2.0 Flash Experimental を使用して画像を生成する際は、適切なプロンプトを作成することが重要です。プロンプトとは、生成したい画像の内容を説明するテキストです。効果的なプロンプトは以下の3つの要素で構成されます：
+Gemini 2.0 Flash Experimentalは、あなたのクリエイティブなビジョンを現実にする強力なツールです。優れた画像を生成するための秘訣は、プロンプトの中に以下の3つの魔法の要素を織り込むことです：
 
-1. **主題** - 何を生成したいか
-2. **コンテキスト** - どのような状況や背景か
-3. **スタイル** - どのような見た目や雰囲気にしたいか
+### ✨ プロンプトの3つの魔法
 
-## プロンプト作成のヒント
+1. **🎯 ビジョン** - あなたが思い描く世界
+2. **🌈 アトモスフェア** - その世界を彩る空気感
+3. **💫 エッセンス** - 作品に宿る独特の魅力
 
-### 短いプロンプトと長いプロンプト
+## 💡 プロンプトクラフティング
 
-Imagen 3は、短いプロンプトでも長いプロンプトでも対応できます：
+### 🎭 表現のスタイル
 
-- **短いプロンプト**: 画像をすばやく生成したい場合に適しています
-  - 例: `20代の女性のクローズアップ写真, ストリート写真, 映画のワンシーン, 落ち着いたオレンジの暖色調`
-
-- **長いプロンプト**: より具体的な詳細を追加したい場合に適しています
-  - 例: `ストリートフォトスタイルを活用した20代の女性の魅力的な写真。画像は、オレンジ色の暖色系の落ち着いた色調にし、映画のワンシーンのように見えるようにする必要があります。`
-
-### 効果的なプロンプト作成のためのヒント
-
-1. **わかりやすい表現を使用する**
-   - 具体的な形容詞や副詞を使用して、明確な画像を描きます
-
-2. **コンテキストを提供する**
-   - 必要に応じて、AIの理解を助けるために背景情報を含めます
-
-3. **特定のアーティストやスタイルを参照する**
-   - 特定の美学を念頭に置いている場合は、特定のアーティストや芸術運動を参照すると役に立ちます
-
-4. **画像内のテキストを生成する場合**
-   - テキストを明確に指定し、短く簡潔にします
-
-5. **個人写真やグループ写真の顔の細部を補正する**
-   - 写真の焦点として顔の詳細を指定します（例：プロンプトで「ポートレート」という単語を使用）
-
-## スタイルの指定
-
-### 写真スタイル
-
-写真のような画像を生成する場合は、以下のようなスタイル指定が効果的です：
-
-- `ポートレート写真`
-- `風景写真`
-- `ストリート写真`
-- `マクロ写真`
-- `航空写真`
-- `水中写真`
-
-### イラストとアートスタイル
-
-イラストやアート作品を生成する場合は、以下のようなスタイル指定が効果的です：
-
-- `水彩画`
-- `油絵`
-- `デジタルアート`
-- `漫画スタイル`
-- `ピクセルアート`
-- `3Dレンダリング`
-
-## 高度なプロンプト作成手法
-
-### 写真の修飾子
-
-写真のような画像を生成する場合は、以下のような修飾子を追加すると効果的です：
-
-- カメラの種類: `一眼レフカメラで撮影`
-- レンズの種類: `広角レンズ`, `マクロレンズ`
-- 照明条件: `自然光`, `スタジオ照明`, `夕暮れの光`
-- 撮影技法: `ボケ効果`, `シャロー・フォーカス`, `ハイキー`
-
-### 形状と素材
-
-オブジェクトの形状や素材を指定すると、より具体的な画像を生成できます：
-
-- 形状: `丸い`, `四角い`, `流線型の`
-- 素材: `木製の`, `金属製の`, `ガラス製の`, `セラミック製の`
-
-### 画像品質の修飾子
-
-画像の品質を向上させるための修飾子：
-
-- `高解像度`
-- `詳細な`
-- `シャープな`
-- `4K`
-- `8K`
-
-### アスペクト比
-
-特定のアスペクト比を指定したい場合は、プロンプトに含めることができます：
-
-- `正方形のフォーマット`
-- `ワイドスクリーンフォーマット`
-- `縦長のフォーマット`
-
-## 実践的なプロンプト例
-
-### 本の表紙画像の生成
-
+#### ミニマルアプローチ
+シンプルで力強い表現で、すばやくイメージを具現化：
 ```
-Create a book cover image for a fantasy novel titled "The Crystal Kingdom". The cover should feature a majestic crystal castle on a floating island, surrounded by clouds. Use a vibrant color palette with blues and purples. The style should be digital art with a magical atmosphere. Please include the title "The Crystal Kingdom" and author name "J.R. Morgan" in an elegant fantasy font.
+透明感のある少女のポートレート, シネマティック, 朝もやに包まれた情景, パステルカラー
 ```
 
-### 風景画像の生成
-
+#### デティールアプローチ
+繊細なディテールで、より深い表現を実現：
 ```
-A serene landscape photograph of a misty mountain lake at dawn. The mountains should be reflected in the still water. Soft morning light filtering through the mist. Shot with a wide-angle lens on a professional DSLR camera. High resolution, photorealistic quality.
-```
-
-### キャラクターイラストの生成
-
-```
-Create a manga-style illustration of a young female warrior with short blue hair and determined eyes. She's wearing a lightweight armor with silver and blue accents. She's holding a glowing sword and standing in a defensive pose. The background should show a Japanese-inspired fantasy city at night with cherry blossoms falling. Dynamic composition with dramatic lighting.
+早朝の柔らかな光に包まれた、透明感のある少女のポートレート。パステルカラーの色調で、
+映画のワンシーンのような雰囲気。朝もやが漂う中、少女の瞳には希望の光が宿っている。
 ```
 
-## 制限事項
+### 🎪 アーティスティックスタイル
 
-- 最高のパフォーマンスを実現するには、EN、es-MX、ja-JP、zh-CN、hi-IN のいずれかの言語を使用してください
-- 画像生成では、音声や動画の入力はサポートされていません
-- 画像生成がトリガーされない場合は、以下を試してください：
-  - 画像出力を明示的に指示する（例: 「画像を生成してください」、「作業時に画像を提供してください」）
-  - 別のプロンプトを試す
+#### 📸 フォトグラフィック
+- `シネマティック` - 映画のような劇的な瞬間
+- `エディトリアル` - ファッション誌のような洗練された表現
+- `ドキュメンタリー` - リアルな瞬間を切り取る
+- `ファインアート` - 芸術的な表現を追求
 
-## 参考リンク
+#### 🎨 イラストレーション
+- `水彩画` - 繊細で詩的な表現
+- `油彩画` - 豊かな質感と深い色彩
+- `デジタルアート` - モダンで自由な表現
+- `アニメスタイル` - 日本のアニメ文化を反映
 
-- [Gemini API 公式ドキュメント](https://ai.google.dev/gemini-api/docs)
-- [Imagen プロンプトガイド（公式）](https://ai.google.dev/gemini-api/docs/imagen-prompt-guide) 
+## 🛠 プロフェッショナルテクニック
+
+### 📷 写真表現の魔法
+
+#### カメラワーク
+- `望遠レンズ` - 被写体を引き立てる圧縮効果
+- `広角レンズ` - ダイナミックな空間表現
+- `マクロレンズ` - 繊細なディテールを捉える
+
+#### ライティング
+- `ゴールデンアワー` - 魔法の時間の温かな光
+- `ブルーアワー` - 神秘的な青の世界
+- `レムブラント` - ドラマティックな明暗
+- `バタフライ` - 優雅な陰影
+
+### 🎭 アート表現のエッセンス
+
+#### テクスチャ
+- `シルク` - 優雅な光沢
+- `ベルベット` - 深い質感
+- `クリスタル` - 透明感のある輝き
+- `メタリック` - モダンな光沢
+
+#### アトモスフェア
+- `ミスティ` - 幻想的な霧の効果
+- `エアリー` - 軽やかな空気感
+- `コージー` - 温かみのある雰囲気
+- `ミステリアス` - 神秘的な空気感
+
+## 💫 実践的なプロンプト例
+
+### 📚 ファンタジー小説の表紙
+```
+Create an enchanting book cover for "The Crystal Kingdom". Visualize a floating crystal 
+castle among iridescent clouds, with aurora-like magical energies swirling around it. 
+Use a dreamy color palette of deep purples and ethereal blues. Style: Elegant digital 
+art with a touch of watercolor effects. Include "The Crystal Kingdom" in a mystical 
+crystal-like font.
+```
+
+### 🌅 風景写真
+```
+Capture a breathtaking mountain lake at dawn, where reality meets dreams. The still 
+water mirrors majestic peaks like a natural looking glass. Golden morning light 
+dances through wisps of mist, creating an ethereal atmosphere. Shot with a high-end 
+wide-angle lens, emphasizing both grandeur and intimate details.
+```
+
+### 👗 ファッションポートレート
+```
+Create a high-fashion editorial portrait of a model in an avant-garde setting. 
+Architectural elements frame the composition with strong geometric lines. The lighting 
+should be dramatic with a mix of cool and warm tones. Style: Modern minimalist with 
+a touch of surrealism. Color palette: Muted pastels with bold accent colors.
+```
+
+## ⚡ プロのヒント
+
+1. **🎯 明確なビジョン**
+   - 具体的なイメージを持って指示を出す
+   - 重要な要素から順に説明する
+
+2. **🌈 雰囲気づくり**
+   - 光や色で望む雰囲気を表現
+   - 感情やムードを言葉で描写
+
+3. **💫 細部へのこだわり**
+   - 重要なディテールは具体的に
+   - 全体の調和を意識する
+
+## 🔗 もっと学ぶ
+
+- [Gemini API 公式ガイド](https://ai.google.dev/gemini-api/docs)
+- [プロンプトクラフティング詳細ガイド](https://ai.google.dev/gemini-api/docs/imagen-prompt-guide) 
