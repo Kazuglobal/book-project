@@ -153,11 +153,18 @@ export default function BookPageDesigner() {
             style={{ backgroundColor }}
           >
             {generatedImage && (
-              <img 
-                src={generatedImage} 
-                alt="Page illustration" 
-                className="absolute inset-0 w-full h-full object-contain"
-              />
+              <div className="relative">
+                <img 
+                  src={generatedImage} 
+                  alt="Generated page image" 
+                  className="w-full h-auto rounded-md shadow-md"
+                />
+                {error && error.includes('安全性フィルター') && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-red-700/70 to-transparent p-4 text-white text-sm">
+                    <p><strong>注意</strong>: {error}</p>
+                  </div>
+                )}
+              </div>
             )}
             <div className="relative z-10 p-8 max-h-full overflow-auto">
               <div 

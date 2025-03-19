@@ -84,52 +84,176 @@ export async function POST(request) {
  */
 async function generateBookCover(prompt, bookTitle, author) {
   try {
-    // 最新の画像生成モデルを選択
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.0-flash-exp-image-generation",
-      generationConfig: {
-        responseModalities: ['Text', 'Image']
-      }
-    });
+    // 安全なプロンプトを作成
+    const safePrompt = prompt.replace(/[^\w\s.,!?:;\-()]/g, '');
+    
+    // プロンプトを生成
+    const imagePrompt = `Create a beautiful book cover for "${bookTitle}" by ${author}. ${safePrompt}`;
+    
+    console.log('Sending request to Gemini API for book cover generation with prompt:', imagePrompt);
 
-    // プロンプトの作成
-    const fullPrompt = `Create a book cover image for a book titled "${bookTitle}" by ${author}. ${prompt}. Please generate an image.`;
-
-    // 画像生成リクエストの設定
-    const response = await model.generateContent(fullPrompt);
-    
-    // レスポンスから画像データを抽出
-    let imageUrl = null;
-    let description = null;
-    
-    for (const part of response.response.candidates[0].content.parts) {
-      if (part.inlineData) {
-        const imageData = part.inlineData.data;
-        imageUrl = `data:image/jpeg;base64,${imageData}`;
-      } else if (part.text) {
-        description = part.text;
-      }
-    }
-    
-    if (imageUrl) {
-      return NextResponse.json({ 
-        imageUrl,
-        description: description || "Generated image"
+    try {
+      // Gemini APIクライアントを再初期化
+      const freshGenAI = new GoogleGenerativeAI(API_KEY);
+      
+      // 最新のGemini APIエンドポイントを使用して画像生成を試みる
+      const model = freshGenAI.getGenerativeModel({ 
+        model: "gemini-2.0-flash-exp-image-generation",
+        generationConfig: {
+          responseModalities: ['Text', 'Image']
+        }
       });
-    } else {
-      // 画像が生成されなかった場合はテキスト説明のみを返す
+      
+      const response = await model.generateContent(imagePrompt);
+      console.log('Received response from Gemini API:', JSON.stringify(response, null, 2));
+      
+      // レスポンスから画像データを抽出
+      let imageUrl = null;
+      let textResponse = null;
+      
+      if (response && response.response && 
+          response.response.candidates && 
+          response.response.candidates.length > 0) {
+        
+        // SAFETY または他のfinishReasonをチェック
+        const finishReason = response.response.candidates[0].finishReason;
+        if (finishReason === 'IMAGE_SAFETY' || finishReason === 'SAFETY' || finishReason === 'RECITATION') {
+          throw new Error(`画像生成がブロックされました: ${finishReason}`);
+        }
+        
+        if (response.response.candidates[0].content &&
+            response.response.candidates[0].content.parts) {
+          const parts = response.response.candidates[0].content.parts;
+          
+          for (const part of parts) {
+            if (part.inlineData && part.inlineData.data) {
+              imageUrl = `data:image/png;base64,${part.inlineData.data}`;
+            } else if (part.text) {
+              textResponse = part.text;
+            }
+          }
+        }
+      }
+      
+      if (imageUrl) {
+        return NextResponse.json({ 
+          imageUrl,
+          description: textResponse || "Generated with Gemini"
+        });
+      } else {
+        // 画像生成に失敗した場合
+        const finishReason = response && 
+                            response.response &&
+                            response.response.candidates && 
+                            response.response.candidates.length > 0 && 
+                            response.response.candidates[0].finishReason;
+        
+        let errorMessage;
+        if (finishReason === 'SAFETY' || finishReason === 'IMAGE_SAFETY') {
+          errorMessage = '安全性フィルターによりブロックされました。プロンプトを変更して再試行してください。';
+        } else if (finishReason === 'RECITATION') {
+          errorMessage = 'コンテンツポリシー違反が検出されました。別のプロンプトをお試しください。';
+        } else {
+          errorMessage = '画像生成に失敗しました。別のプロンプトをお試しください。';
+        }
+        
+        console.warn('Gemini API error or no image returned:', errorMessage, 'Finish reason:', finishReason);
+        
+        // テキスト生成でカバーする
+        const textGenAI = new GoogleGenerativeAI(API_KEY);
+        const textModel = textGenAI.getGenerativeModel({ 
+          model: "gemini-1.5-flash" 
+        });
+        
+        const descriptionPrompt = `Describe in detail what a book cover for "${bookTitle}" by ${author} would look like. ${safePrompt}`;
+        
+        const textResult = await textModel.generateContent({
+          contents: [{ role: "user", parts: [{ text: descriptionPrompt }] }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 1024,
+          },
+        });
+        
+        const coverDescription = textResult.response.text();
+        
+        // プレースホルダー画像を生成
+        const placeholderUrl = generatePlaceholderImage(bookTitle, author);
+        
+        return NextResponse.json({ 
+          imageUrl: placeholderUrl,
+          message: `${errorMessage} 代わりに説明テキストを生成しました。`,
+          summary: coverDescription || textResponse,
+          finishReason: finishReason
+        });
+      }
+    } catch (imageError) {
+      console.error('Gemini Image API error:', imageError);
+      
+      // 画像生成APIが失敗した場合は、代わりに通常のGemini APIでテキスト生成を試みる
+      console.log('Falling back to Gemini text generation for cover description');
+      
+      // 新しいAPIクライアントを初期化
+      const fallbackGenAI = new GoogleGenerativeAI(API_KEY);
+      const model = fallbackGenAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash" 
+      });
+      
+      const descriptionPrompt = `Describe in detail what a book cover for "${bookTitle}" by ${author} would look like. ${safePrompt}`;
+      
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: descriptionPrompt }] }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 1024,
+        },
+      });
+      
+      const coverDescription = result.response.text();
+      
+      // プレースホルダー画像を生成
+      const placeholderUrl = generatePlaceholderImage(bookTitle, author);
+      
       return NextResponse.json({ 
-        message: "画像生成はサポートされていません。代わりに説明テキストを生成しました。",
-        summary: description || "画像の説明を生成できませんでした。"
+        imageUrl: placeholderUrl,
+        message: "画像生成の処理中にエラーが発生しました。代わりに説明テキストを生成しました。",
+        summary: coverDescription,
+        error: imageError.message
       });
     }
   } catch (error) {
     console.error('Error generating book cover:', error);
+    
+    // エラー時にもプレースホルダー画像を生成
+    const placeholderUrl = generatePlaceholderImage(bookTitle, author);
+    
     return NextResponse.json(
-      { error: '画像生成中にエラーが発生しました: ' + error.message },
-      { status: 500 }
+      { 
+        error: '画像生成中にエラーが発生しました: ' + error.message,
+        stack: error.stack,
+        imageUrl: placeholderUrl,
+        message: "エラーが発生しましたが、プレースホルダー画像を生成しました。"
+      },
+      { status: 200 } // エラーでも200を返して、フロントエンドでプレースホルダーを表示
     );
   }
+}
+
+/**
+ * シンプルなプレースホルダー画像URLを生成する関数
+ */
+function generatePlaceholderImage(title, author) {
+  // タイトルと著者名をURLエンコード
+  const encodedTitle = encodeURIComponent(title);
+  const encodedAuthor = encodeURIComponent(author);
+  
+  // 色をランダムに生成
+  const colors = ['1e88e5', '43a047', 'e53935', '5e35b1', 'fb8c00', '546e7a', '6d4c41', '00acc1'];
+  const randomColor = colors[Math.floor(Math.random() * colors.length)];
+  const randomBgColor = '212121';
+  
+  // プレースホルダー画像URL
+  return `https://placehold.co/800x1200/${randomColor}/${randomBgColor}?text=${encodedTitle}%0Aby%0A${encodedAuthor}&font=playfair`;
 }
 
 /**
@@ -137,8 +261,11 @@ async function generateBookCover(prompt, bookTitle, author) {
  */
 async function generateBookSummary(bookTitle, genre) {
   try {
+    // Gemini APIクライアントを再初期化
+    const freshGenAI = new GoogleGenerativeAI(API_KEY);
+    
     // モデルの選択
-    const model = genAI.getGenerativeModel({ 
+    const model = freshGenAI.getGenerativeModel({ 
       model: "gemini-2.0-flash" 
     });
 
@@ -172,73 +299,212 @@ async function generateBookSummary(bookTitle, genre) {
  */
 async function generatePageImage(prompt, pageStyle, pageContent) {
   try {
-    // 最新の画像生成モデルを選択
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.0-flash-exp-image-generation",
-      generationConfig: {
-        responseModalities: ['Text', 'Image']
-      }
-    });
-
-    // ページスタイルに基づいたプロンプトの調整
-    let stylePrompt = '';
+    // 安全なプロンプトを作成
+    const safePrompt = prompt ? prompt.replace(/[^\w\s.,!?:;\-()]/g, '') : '';
+    const safeContent = pageContent ? pageContent.replace(/[^\w\s.,!?:;\-()]/g, '') : '';
+    
+    // スタイルに基づいたプロンプト補強
+    let styleDescription = '';
     switch (pageStyle) {
       case 'novel':
-        stylePrompt = 'Create an elegant, atmospheric illustration for a novel page. The style should be subtle and evocative.';
+        styleDescription = 'elegant illustration for a novel with a clean design';
         break;
       case 'manga':
-        stylePrompt = 'Create a manga-style illustration with dynamic composition and expressive characters.';
+        styleDescription = 'manga style illustration with clear line art';
         break;
       case 'children':
-        stylePrompt = 'Create a colorful, whimsical illustration for a children\'s book. The style should be friendly and engaging.';
+        styleDescription = 'colorful and whimsical illustration for a children\'s book';
         break;
       case 'technical':
-        stylePrompt = 'Create a clean, informative diagram or illustration for a technical book. Include relevant visual elements that explain concepts.';
+        styleDescription = 'clear diagram or infographic for a technical book';
         break;
       default:
-        stylePrompt = 'Create a simple, clean illustration for a book page.';
-    }
-
-    // コンテンツに基づいたコンテキストの追加
-    const contentContext = pageContent ? `The illustration should relate to this content: "${pageContent}"` : '';
-
-    // プロンプトの作成
-    const fullPrompt = `${stylePrompt} ${prompt} ${contentContext}. Please generate an image.`;
-
-    // 画像生成リクエストの設定
-    const response = await model.generateContent(fullPrompt);
-    
-    // レスポンスから画像データを抽出
-    let imageUrl = null;
-    let description = null;
-    
-    for (const part of response.response.candidates[0].content.parts) {
-      if (part.inlineData) {
-        const imageData = part.inlineData.data;
-        imageUrl = `data:image/jpeg;base64,${imageData}`;
-      } else if (part.text) {
-        description = part.text;
-      }
+        styleDescription = 'book illustration';
     }
     
-    if (imageUrl) {
-      return NextResponse.json({ 
-        imageUrl,
-        description: description || "Generated image"
+    // イメージ生成用のプロンプトを作成
+    const imagePrompt = `Create a ${styleDescription}${safeContent ? ` about "${safeContent.substring(0, 50)}"` : ''}${safePrompt ? `. Details: ${safePrompt}` : ''}`;
+    
+    console.log('Sending request to Gemini API for page illustration generation with prompt:', imagePrompt);
+
+    try {
+      // Gemini APIクライアントを再初期化
+      const freshGenAI = new GoogleGenerativeAI(API_KEY);
+      
+      // 最新のGemini APIエンドポイントを使用して画像生成を試みる
+      const model = freshGenAI.getGenerativeModel({ 
+        model: "gemini-2.0-flash-exp-image-generation",
+        generationConfig: {
+          responseModalities: ['Text', 'Image']
+        }
       });
-    } else {
-      // 画像が生成されなかった場合はダミー画像とテキスト説明を返す
+      
+      const response = await model.generateContent(imagePrompt);
+      console.log('Received response from Gemini API:', JSON.stringify(response, null, 2));
+      
+      // レスポンスから画像データを抽出
+      let imageUrl = null;
+      let textResponse = null;
+      
+      if (response && response.response && 
+          response.response.candidates && 
+          response.response.candidates.length > 0) {
+        
+        // SAFETY または他のfinishReasonをチェック
+        const finishReason = response.response.candidates[0].finishReason;
+        if (finishReason === 'IMAGE_SAFETY' || finishReason === 'SAFETY' || finishReason === 'RECITATION') {
+          throw new Error(`画像生成がブロックされました: ${finishReason}`);
+        }
+        
+        if (response.response.candidates[0].content &&
+            response.response.candidates[0].content.parts) {
+          const parts = response.response.candidates[0].content.parts;
+          
+          for (const part of parts) {
+            if (part.inlineData && part.inlineData.data) {
+              imageUrl = `data:image/png;base64,${part.inlineData.data}`;
+            } else if (part.text) {
+              textResponse = part.text;
+            }
+          }
+        }
+      }
+      
+      if (imageUrl) {
+        return NextResponse.json({ 
+          imageUrl,
+          description: textResponse || "Generated with Gemini"
+        });
+      } else {
+        // 画像生成に失敗した場合
+        const finishReason = response && 
+                            response.response &&
+                            response.response.candidates && 
+                            response.response.candidates.length > 0 && 
+                            response.response.candidates[0].finishReason;
+        
+        let errorMessage;
+        if (finishReason === 'SAFETY' || finishReason === 'IMAGE_SAFETY') {
+          errorMessage = '安全性フィルターによりブロックされました。プロンプトを変更して再試行してください。';
+        } else if (finishReason === 'RECITATION') {
+          errorMessage = 'コンテンツポリシー違反が検出されました。別のプロンプトをお試しください。';
+        } else {
+          errorMessage = '画像生成に失敗しました。別のプロンプトをお試しください。';
+        }
+        
+        console.warn('Gemini API error or no image returned:', errorMessage, 'Finish reason:', finishReason);
+        
+        // テキスト生成でカバーする
+        const textGenAI = new GoogleGenerativeAI(API_KEY);
+        const textModel = textGenAI.getGenerativeModel({ 
+          model: "gemini-1.5-flash" 
+        });
+        
+        const descriptionPrompt = `Describe in detail what a ${styleDescription} about "${safeContent}" would look like. ${safePrompt}`;
+        
+        const textResult = await textModel.generateContent({
+          contents: [{ role: "user", parts: [{ text: descriptionPrompt }] }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 1024,
+          },
+        });
+        
+        const pageDescription = textResult.response.text();
+        
+        // プレースホルダー画像を生成
+        const placeholderUrl = generatePlaceholderContent(pageStyle, safeContent);
+        
+        return NextResponse.json({ 
+          imageUrl: placeholderUrl,
+          message: `${errorMessage} 代わりに説明テキストを生成しました。`,
+          description: pageDescription || textResponse,
+          finishReason: finishReason
+        });
+      }
+    } catch (imageError) {
+      console.error('Gemini Image API error:', imageError);
+      
+      // 画像生成APIが失敗した場合は、代わりに通常のGemini APIでテキスト生成を試みる
+      console.log('Falling back to Gemini text generation for page description');
+      
+      // 新しいAPIクライアントを初期化
+      const fallbackGenAI = new GoogleGenerativeAI(API_KEY);
+      const model = fallbackGenAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash" 
+      });
+      
+      const descriptionPrompt = `Describe in detail what a ${styleDescription} for a book page about "${safeContent}" would look like. ${safePrompt}`;
+      
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: descriptionPrompt }] }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 1024,
+        },
+      });
+      
+      const pageDescription = result.response.text();
+      
+      // プレースホルダー画像を生成
+      const placeholderUrl = generatePlaceholderContent(pageStyle, safeContent);
+      
       return NextResponse.json({ 
-        imageUrl: "https://placehold.co/600x400/orange/white?text=Generated+Image+Placeholder",
-        description: description || "画像の説明を生成できませんでした。",
-        message: "画像生成はサポートされていません。代わりにプレースホルダー画像と説明テキストを生成しました。"
+        imageUrl: placeholderUrl,
+        message: "画像生成の処理中にエラーが発生しました。代わりに説明テキストを生成しました。",
+        description: pageDescription,
+        error: imageError.message
       });
     }
   } catch (error) {
     console.error('Error generating page image:', error);
+    
+    // エラー時にもプレースホルダー画像を生成
+    const placeholderUrl = generatePlaceholderContent(pageStyle, pageContent);
+    
     return NextResponse.json(
-      { error: '画像生成中にエラーが発生しました: ' + error.message },
-      { status: 500 }
+      { 
+        error: '画像生成中にエラーが発生しました: ' + error.message,
+        stack: error.stack,
+        imageUrl: placeholderUrl,
+        message: "エラーが発生しましたが、プレースホルダー画像を生成しました。"
+      },
+      { status: 200 } // エラーでも200を返して、フロントエンドでプレースホルダーを表示
     );
   }
+}
+
+/**
+ * シンプルなプレースホルダーコンテンツ画像を生成する関数
+ */
+function generatePlaceholderContent(style, content) {
+  // スタイルに適した色を選択
+  let color = '1e88e5'; // デフォルト青
+  let bgColor = 'f5f5f5';
+  let textContent = content ? content.substring(0, 50) : 'Book Page Illustration';
+  
+  switch (style) {
+    case 'novel':
+      color = '546e7a'; // グレー
+      bgColor = 'fffde7'; // 明るいベージュ
+      break;
+    case 'manga':
+      color = '212121'; // 黒
+      bgColor = 'ffffff'; // 白
+      break;
+    case 'children':
+      color = 'fb8c00'; // オレンジ
+      bgColor = 'e3f2fd'; // 明るい青
+      break;
+    case 'technical':
+      color = '0097a7'; // ティール
+      bgColor = 'f5f5f5'; // グレー
+      break;
+  }
+  
+  // コンテンツ内容をエンコード
+  const encodedText = encodeURIComponent(textContent);
+  
+  // プレースホルダー画像URL
+  return `https://placehold.co/600x400/${color}/${bgColor}?text=${encodedText}&font=roboto`;
 }
