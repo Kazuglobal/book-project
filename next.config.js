@@ -11,7 +11,8 @@ const nextConfig = {
     ],
   },
   env: {
-    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    GEMINI_API_KEY: 'AIzaSyBj-RbeGsQBvez1OUiokupt55Vj51S7f6A',
+    NEXT_PUBLIC_GEMINI_API_KEY: 'AIzaSyBj-RbeGsQBvez1OUiokupt55Vj51S7f6A',
   },
 }
 

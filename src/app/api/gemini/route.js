@@ -2,28 +2,53 @@ import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // 環境変数からAPIキーを取得
-const API_KEY = process.env.GEMINI_API_KEY;
+const API_KEY = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
 
-console.log('Using API key from environment variable');
+// デバッグのためのログ出力
+console.log('GEMINI_API_KEY exists:', Boolean(process.env.GEMINI_API_KEY));
+console.log('NEXT_PUBLIC_GEMINI_API_KEY exists:', Boolean(process.env.NEXT_PUBLIC_GEMINI_API_KEY));
+console.log('API_KEY length:', API_KEY.length);
 
 // APIキーが設定されているか確認
-if (!API_KEY) {
-  console.error('GEMINI_API_KEY is not set');
-} else if (API_KEY === 'YOUR_API_KEY_HERE') {
-  console.error('GEMINI_API_KEY is using the placeholder value');
+if (!API_KEY || API_KEY.trim() === '' || API_KEY === 'YOUR_API_KEY_HERE') {
+  console.error('APIキーが正しく設定されていません');
 } else {
-  console.log('GEMINI_API_KEY is set correctly');
+  console.log('API key appears to be configured correctly');
 }
 
 // Gemini APIクライアントの初期化
-const genAI = API_KEY ? new GoogleGenerativeAI(API_KEY) : null;
+let genAI = null;
+try {
+  if (API_KEY && API_KEY.trim() !== '' && API_KEY !== 'YOUR_API_KEY_HERE') {
+    genAI = new GoogleGenerativeAI(API_KEY);
+    console.log('Gemini API client initialized successfully');
+  } else {
+    console.error('APIキーが設定されていないためGemini APIクライアントを初期化できません');
+  }
+} catch (error) {
+  console.error('Failed to initialize Gemini API client:', error);
+}
 
 export async function POST(request) {
   try {
+    console.log('POST request received');
+    
+    // APIキーのデバッグ情報を再度出力
+    console.log('API_KEY validity check (POST):', Boolean(API_KEY && API_KEY.trim() !== '' && API_KEY !== 'YOUR_API_KEY_HERE'));
+    console.log('genAI initialized check:', Boolean(genAI));
+    
     // APIキーが設定されていない場合はエラーを返す
-    if (!API_KEY || !genAI) {
+    if (!API_KEY || API_KEY.trim() === '' || API_KEY === 'YOUR_API_KEY_HERE' || !genAI) {
+      console.error('API key validation failed in POST request');
       return NextResponse.json(
-        { error: 'API key is not configured. Please set the GEMINI_API_KEY environment variable with a valid key.' },
+        { 
+          error: 'API key is not configured correctly. Please set the GEMINI_API_KEY and NEXT_PUBLIC_GEMINI_API_KEY environment variables with valid keys.',
+          apiKeyStatus: {
+            apiKeyExists: Boolean(API_KEY),
+            apiKeyEmpty: API_KEY.trim() === '',
+            genAIInitialized: Boolean(genAI)
+          }
+        },
         { status: 500 }
       );
     }

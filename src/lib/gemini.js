@@ -5,29 +5,35 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 // 環境変数からAPIキーを取得
 const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
 
-// APIキーが設定されているか確認
-const isValidApiKey = Boolean(API_KEY && API_KEY !== 'YOUR_API_KEY_HERE');
+// APIキーが設定されているか確認（より厳密なチェック）
+const isValidApiKey = Boolean(API_KEY && API_KEY.trim() !== '' && API_KEY !== 'YOUR_API_KEY_HERE');
 
 // Gemini APIクライアントの初期化
 let genAI = null;
 try {
   if (isValidApiKey) {
     genAI = new GoogleGenerativeAI(API_KEY);
-    console.log('Gemini API client initialized successfully');
+    console.log('Gemini API client initialized successfully on client-side');
+  } else {
+    console.error('No valid API key found. Cannot initialize Gemini client on client-side.');
   }
 } catch (error) {
-  console.error('Failed to initialize Gemini API client:', error);
+  console.error('Failed to initialize Gemini API client on client-side:', error);
 }
 
 export { genAI, isValidApiKey };
 
 // APIキーが設定されていない場合のエラーメッセージを返す関数
 export function getApiKeyErrorMessage() {
-  if (!API_KEY) {
+  if (!API_KEY || API_KEY.trim() === '') {
     return 'Gemini APIキーが設定されていません。.env.localファイルにNEXT_PUBLIC_GEMINI_API_KEYを設定してください。';
   }
   if (API_KEY === 'YOUR_API_KEY_HERE') {
     return 'Gemini APIキーがプレースホルダーのままです。有効なAPIキーを.env.localファイルに設定してください。';
+  }
+  // APIキーの形式チェック（Googleのキーはよく「AIza」で始まる）
+  if (!API_KEY.startsWith('AIza')) {
+    return 'Gemini APIキーの形式が正しくありません。有効なAPIキーを.env.localファイルに設定してください。';
   }
   return null;
 }

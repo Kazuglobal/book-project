@@ -124,7 +124,7 @@ export default function BookCoverGenerator() {
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg">
-      <h2 className="text-2xl font-bold mb-6 text-center">AIで本の表紙を生成</h2>
+      <h2 className="text-2xl font-bold mb-6 text-center">本の表紙を生成</h2>
       
       <div className="mb-4 flex space-x-4">
         <Link href="/docs/imagen-prompt-guide" className="text-blue-600 hover:underline">
